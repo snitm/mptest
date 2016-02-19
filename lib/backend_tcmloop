@@ -1,0 +1,51 @@
+#!/bin/bash
+#
+# Copyright (C) 2015 NEC Corporation.  All Rights Reserved.
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it would be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write the Free Software Foundation,
+# Inc.,  51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+#
+
+backend_all_paths ()
+{
+        grep -l LIO-ORG /sys/block/sd*/device/vendor | \
+		awk -F/ '{print $4}'
+}
+
+backend_all_hosts ()
+{
+        grep -l tcm_loopback /sys/class/scsi_host/host*/proc_name | \
+		awk -F/ '{print $5}'
+}
+
+backend_create_device ()
+{
+	targetcli <<EOF || exit 1
+clearconfig confirm=True
+/backstores/ramdisk create rd 1G
+/loopback create naa.5001401111111111
+/loopback create naa.5001402222222222
+/loopback create naa.5001403333333333
+/loopback create naa.5001404444444444
+/loopback/naa.5001401111111111/luns create /backstores/ramdisk/rd
+/loopback/naa.5001402222222222/luns create /backstores/ramdisk/rd
+/loopback/naa.5001403333333333/luns create /backstores/ramdisk/rd
+/loopback/naa.5001404444444444/luns create /backstores/ramdisk/rd
+EOF
+}
+
+backend_delete_device ()
+{
+	echo 'clearconfig confirm=True' | targetcli
+}
+

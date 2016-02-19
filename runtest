@@ -1,0 +1,32 @@
+#!/bin/bash
+
+export MPNAME="mp"
+export LIB=./lib
+
+# Select backend device type
+export MULTIPATH_BACKEND_MODULE="tcmloop"
+#export MULTIPATH_BACKEND_MODULE="scsidebug"
+
+# Uncomment this if you want shorter test
+export FIO_VALIDATE_OPT="--time_based --runtime=30 --size=10G"
+
+TESTS="./tests/*"
+if [ "$*" ]; then
+	TESTS=$*
+fi
+
+PASSED=
+FAILED=
+for t in $TESTS; do
+	echo "** Running: $t"
+	$t
+	if [ $? -eq 0 ]; then
+		PASSED="$PASSED $(basename $t)"
+	else
+		FAILED="$FAILED $(basename $t)"
+	fi
+done
+
+echo "** summary **"
+echo "PASSED: $PASSED"
+echo "FAILED: $FAILED"

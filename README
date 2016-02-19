@@ -1,0 +1,61 @@
+Test scripts for dm-multipath
+=============================
+
+How to run
+----------
+  # cd mptest
+  # ./runtest
+  ..
+  (verbose outputs)
+  ..
+  ** summary **
+  PASSED:  test_00_no_failure test_02_sdev_delete test_03_dm_failpath
+  FAILED:  test_01_sdev_offline
+
+  Or './runtest tests/test_01_sdev_offline', for example, to run a
+  specific test.
+
+
+Required tools
+--------------
+  - dmsetup
+  - fio
+  - targetcli (if MULTIPATH_BACKEND_MODULE=tcmloop)
+  - scsi_debug.ko (if MULTIPATH_BACKEND_MODULE=scsidebug)
+
+
+Improvements needed
+-------------------
+  - More realistic ALUA setups
+      * Multiple TPGs
+      * Optimized/Non-optimized groups
+      * Prefered bit
+  - More realistic transports and failure modes
+      * iSCSI
+      * FC
+  - More varieties of I/Os
+      * blk pcs
+  - Validation tests of dm table/status
+      * whether dm-mpath.ko can handle various dm table pattern correctly
+      * whether dm-mpath.ko outputs dm status correctly
+  - Better udev avoidance
+      * a lot of uevents are generated during the test, that unintendedly
+        ends up with stress testing of udev subsystem
+      * dmsetup might fail and/or stall if the avoidance is not done
+        correctly
+  - Integration test with udev and multipath-tools
+      * for realistic testing, tests involving udev and multipathd are
+        also necessary
+
+Issues
+------
+  - When run from non-interactive mode, targetcli might emit python
+    exception when called:
+      Traceback (most recent call last):
+        File "/usr/bin/targetcli", line 121, in <module>
+          main()
+        File "/usr/bin/targetcli", line 111, in main
+          shell.run_interactive()
+        File "/usr/lib/python2.7/site-packages/configshell_fb/shell.py", line 899, in run_interactive
+          readline.set_completer(old_completer)
+      NameError: global name 'readline' is not defined

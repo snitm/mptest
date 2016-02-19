@@ -1,0 +1,119 @@
+#!/bin/bash
+#
+# Copyright (C) 2015 NEC Corporation.  All Rights Reserved.
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it would be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write the Free Software Foundation,
+# Inc.,  51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+#
+
+if [ -z "$MPNAME" ]; then
+	echo "MPNAME should be defined"
+	exit 1
+fi
+if dmsetup info $MPNAME >&/dev/null; then
+	echo "dm device $MPNAME already exists"
+	exit 1
+fi
+
+mpath_all_paths ()
+{
+	backend_all_paths
+}
+
+mpath_all_hosts ()
+{
+	backend_all_hosts
+}
+
+mpath_table ()
+{
+	# dm-mpath parameters
+	local _feature="2 queue_if_no_path retain_attached_hw_handler"
+	local _hwhandler="0"
+	local _initialpg="1"
+	local _selector="queue-length 0"
+	#
+	local str=
+	local _pgs=0
+	#
+	local _paths=0
+	local pgstr=
+	# group by 2-paths
+	for d in $(mpath_all_paths); do
+		local sz=$(blockdev --getsz /dev/$d)
+		if [ -z "$sz" ] || [ "$sz" = "0" ]; then
+			continue
+		fi
+		size=$sz
+		pgstr="$pgstr /dev/${d} 1"
+		_paths=$((_paths + 1))
+		if [ ${_paths} -eq 2 ]; then
+			str="$str ${_selector} ${_paths} 1 $pgstr"
+			pgstr=
+			_paths=0
+			_pgs=$((_pgs + 1))
+		fi
+	done
+	if [ ${_paths} -gt 0 ]; then
+		str="$str ${_selector} ${_paths} 1 $pgstr"
+		pgstr=
+		_paths=0
+		_pgs=$((_pgs + 1))
+	fi
+	if [ ${_pgs} -eq 0 ]; then
+		_initialpg=0
+	fi
+
+	echo "0 $size multipath ${_feature} ${_hwhandler} ${_pgs} ${_initialpg} ${str}"
+}
+
+create_mpath ()
+{
+	# avoid interference with multipathd
+	service multipathd stop
+
+	#
+	# Create multipath backend
+	#
+	backend_create_device
+	# ...wait for sdev become visible
+	sleep 1
+
+	#
+	# Create DM device
+	#
+	local table="$(mpath_table)"
+	echo "Initial table: $table"
+	dmsetup create $MPNAME --table "$table" || exit 1
+	# ...wait for mpdev become visible and udev activities settle
+	sleep 3
+}
+
+delete_mpath ()
+{
+	# ...wait for any processes touching mpdev to finish
+	sleep 3
+
+	# Remove mpath device
+	size=$(dmsetup status $MPNAME | awk '{print $2}')
+	echo "0 $size error" | dmsetup load $MPNAME && \
+	dmsetup suspend --nolockfs --noflush $MPNAME && \
+	dmsetup resume $MPNAME
+	#udevadm settle
+	dmsetup remove $MPNAME
+
+	# ...wait for any processes touching sdev to finish
+	sleep 1
+	backend_delete_device
+}
+
