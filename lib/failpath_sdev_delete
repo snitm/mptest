@@ -38,7 +38,7 @@ start_failpath_sdev_delete () {
 		for h in $(mpath_all_hosts); do
 			echo '- - -' > /sys/class/scsi_host/${h}/scan
 		done
-		#sleep 1
+		sleep 1
 		_reload_mpath_table
 	done &
 }
