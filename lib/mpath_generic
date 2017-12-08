@@ -16,6 +16,11 @@
 # Inc.,  51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #
 
+if [ -z "$MULTIPATH_QUEUE_MODE" ]; then
+	echo "MULTIPATH_QUEUE_MODE should be defined"
+	exit 1
+fi
+
 if [ -z "$MPNAME" ]; then
 	echo "MPNAME should be defined"
 	exit 1
@@ -38,7 +43,7 @@ mpath_all_hosts ()
 mpath_table ()
 {
 	# dm-mpath parameters
-	local _feature="2 queue_if_no_path retain_attached_hw_handler"
+	local _feature="4 queue_if_no_path retain_attached_hw_handler queue_mode $MULTIPATH_QUEUE_MODE"
 	local _hwhandler="0"
 	local _initialpg="1"
 	local _selector="queue-length 0"
@@ -54,6 +59,7 @@ mpath_table ()
 		if [ -z "$sz" ] || [ "$sz" = "0" ]; then
 			continue
 		fi
+		#echo "bfq" > /sys/block/${d}/queue/scheduler
 		size=$sz
 		pgstr="$pgstr /dev/${d} 1"
 		_paths=$((_paths + 1))
@@ -97,6 +103,8 @@ create_mpath ()
 	dmsetup create $MPNAME --table "$table" || exit 1
 	# ...wait for mpdev become visible and udev activities settle
 	sleep 3
+
+	#echo "bfq" > /sys/block/dm-4/queue/scheduler
 }
 
 delete_mpath ()

@@ -10,6 +10,8 @@ export MULTIPATH_BACKEND_MODULE="tcmloop"
 # Uncomment this if you want shorter test
 export FIO_VALIDATE_OPT="--time_based --runtime=30 --size=10G"
 
+export MULTIPATH_QUEUE_MODE="bio"
+
 echo Y > /sys/module/scsi_mod/parameters/use_blk_mq
 echo Y > /sys/module/dm_mod/parameters/use_blk_mq
 
