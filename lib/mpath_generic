@@ -92,7 +92,7 @@ create_mpath ()
 	# Create multipath backend
 	#
 	backend_create_device
-	# ...wait for sdev become visible
+	# ...wait for devices to become visible
 	sleep 1
 
 	#

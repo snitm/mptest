@@ -1,0 +1,135 @@
+#!/bin/bash
+#
+# Copyright (C) 2017 Red Hat, Inc.  All Rights Reserved.
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it would be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write the Free Software Foundation,
+# Inc.,  51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+#
+
+if [ -z "$NVME_FCLOOP_DEVICE" ]; then
+	echo "NVME_FCLOOP_DEVICE should be defined"
+	exit 1
+fi
+
+backend_all_paths ()
+{
+    grep -l fc /sys/block/nvme*/device/transport | awk -F/ '{print $4}'
+}
+
+backend_all_hosts ()
+{
+    # No need for this given the existing tests that support NVMe
+    true
+}
+
+backend_create_device ()
+{
+    modprobe nvme-fcloop
+
+    # create 4 target ports using fcloop
+    echo "wwnn=0x200140111111dbcc,wwpn=0x100140111111dbcc,roles=0x60" > /sys/devices/virtual/fcloop/ctl/add_target_port
+    echo "wwnn=0x200140111111dbcd,wwpn=0x100140111111dbcd,roles=0x60" > /sys/devices/virtual/fcloop/ctl/add_target_port
+    echo "wwnn=0x200140111111dbce,wwpn=0x100140111111dbce,roles=0x60" > /sys/devices/virtual/fcloop/ctl/add_target_port
+    echo "wwnn=0x200140111111dbcf,wwpn=0x100140111111dbcf,roles=0x60" > /sys/devices/virtual/fcloop/ctl/add_target_port
+
+    echo "wwnn=0x200140111111dac8,wwpn=0x100140111111dac8,roles=0x10" > /sys/devices/virtual/fcloop/ctl/add_local_port
+    echo "wwnn=0x200140111111dac9,wwpn=0x100140111111dac9,roles=0x10" > /sys/devices/virtual/fcloop/ctl/add_local_port
+    echo "wwnn=0x200140111111daca,wwpn=0x100140111111daca,roles=0x10" > /sys/devices/virtual/fcloop/ctl/add_local_port
+    echo "wwnn=0x200140111111dacb,wwpn=0x100140111111dacb,roles=0x10" > /sys/devices/virtual/fcloop/ctl/add_local_port
+
+    echo "wwnn=0x200140111111dbcc,wwpn=0x100140111111dbcc,lpwwnn=0x200140111111dac8,lpwwpn=0x100140111111dac8,roles=0x60" > /sys/devices/virtual/fcloop/ctl/add_remote_port
+    echo "wwnn=0x200140111111dbcd,wwpn=0x100140111111dbcd,lpwwnn=0x200140111111dac9,lpwwpn=0x100140111111dac9,roles=0x60" > /sys/devices/virtual/fcloop/ctl/add_remote_port
+    echo "wwnn=0x200140111111dbce,wwpn=0x100140111111dbce,lpwwnn=0x200140111111daca,lpwwpn=0x100140111111daca,roles=0x60" > /sys/devices/virtual/fcloop/ctl/add_remote_port
+    echo "wwnn=0x200140111111dbcf,wwpn=0x100140111111dbcf,lpwwnn=0x200140111111dacb,lpwwpn=0x100140111111dacb,roles=0x60" > /sys/devices/virtual/fcloop/ctl/add_remote_port
+
+    # create nvme target ports
+    nvmetcli <<EOF || exit 1
+cd subsystems
+create mptestnqn
+cd mptestnqn
+set attr allow_any_host=1
+cd namespaces
+create 1
+cd 1
+set device path=${NVME_FCLOOP_DEVICE}
+enable
+cd /ports
+create 1
+cd 1
+set addr trtype=fc
+set addr adrfam=fc
+set addr trsvcid=none
+set addr traddr=nn-0x200140111111dbcc:pn-0x100140111111dbcc
+cd subsystems
+create mptestnqn
+cd /ports
+create 2
+cd 2
+set addr trtype=fc
+set addr adrfam=fc
+set addr trsvcid=none
+set addr traddr=nn-0x200140111111dbcd:pn-0x100140111111dbcd
+cd subsystems
+create mptestnqn
+cd /ports
+create 3
+cd 3
+set addr trtype=fc
+set addr adrfam=fc
+set addr trsvcid=none
+set addr traddr=nn-0x200140111111dbce:pn-0x100140111111dbce
+cd subsystems
+create mptestnqn
+cd /ports
+create 4
+cd 4
+set addr trtype=fc
+set addr adrfam=fc
+set addr trsvcid=none
+set addr traddr=nn-0x200140111111dbcf:pn-0x100140111111dbcf
+cd subsystems
+create mptestnqn
+exit
+EOF
+
+    # finally connect the nvme initiator to the nvme targets
+    nvme connect -t fc -a "nn-0x200140111111dbcc:pn-0x100140111111dbcc" -w "nn-0x200140111111dac8:pn-0x100140111111dac8" -n mptestnqn
+    nvme connect -t fc -a "nn-0x200140111111dbcd:pn-0x100140111111dbcd" -w "nn-0x200140111111dac9:pn-0x100140111111dac9" -n mptestnqn
+    nvme connect -t fc -a "nn-0x200140111111dbce:pn-0x100140111111dbce" -w "nn-0x200140111111daca:pn-0x100140111111daca" -n mptestnqn
+    nvme connect -t fc -a "nn-0x200140111111dbcf:pn-0x100140111111dbcf" -w "nn-0x200140111111dacb:pn-0x100140111111dacb" -n mptestnqn
+}
+
+backend_delete_device ()
+{
+    for d in $(backend_all_paths); do
+	nvme disconnect -d /dev/$d
+    done
+
+    nvmetcli clear
+
+    # teardown fcloop devices
+    echo "wwnn=0x200140111111dbcc,wwpn=0x100140111111dbcc" > /sys/devices/virtual/fcloop/ctl/del_remote_port
+    echo "wwnn=0x200140111111dbcd,wwpn=0x100140111111dbcd" > /sys/devices/virtual/fcloop/ctl/del_remote_port
+    echo "wwnn=0x200140111111dbce,wwpn=0x100140111111dbce" > /sys/devices/virtual/fcloop/ctl/del_remote_port
+    echo "wwnn=0x200140111111dbcf,wwpn=0x100140111111dbcf" > /sys/devices/virtual/fcloop/ctl/del_remote_port
+
+    echo "wwnn=0x200140111111dac8,wwpn=0x100140111111dac8" > /sys/devices/virtual/fcloop/ctl/del_local_port
+    echo "wwnn=0x200140111111dac9,wwpn=0x100140111111dac9" > /sys/devices/virtual/fcloop/ctl/del_local_port
+    echo "wwnn=0x200140111111daca,wwpn=0x100140111111daca" > /sys/devices/virtual/fcloop/ctl/del_local_port
+    echo "wwnn=0x200140111111dacb,wwpn=0x100140111111dacb" > /sys/devices/virtual/fcloop/ctl/del_local_port
+
+    echo "wwnn=0x200140111111dbcc,wwpn=0x100140111111dbcc" > /sys/devices/virtual/fcloop/ctl/del_target_port
+    echo "wwnn=0x200140111111dbcd,wwpn=0x100140111111dbcd" > /sys/devices/virtual/fcloop/ctl/del_target_port
+    echo "wwnn=0x200140111111dbce,wwpn=0x100140111111dbce" > /sys/devices/virtual/fcloop/ctl/del_target_port
+    echo "wwnn=0x200140111111dbcf,wwpn=0x100140111111dbcf" > /sys/devices/virtual/fcloop/ctl/del_target_port
+}

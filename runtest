@@ -3,14 +3,20 @@
 export MPNAME="mp"
 export LIB=./lib
 
-# Select backend device type
+# Select backend device type.
+# Available MULTIPATH_BACKEND_MODULE options are:
+# tcmloop nvmefcloop scsidebug
 export MULTIPATH_BACKEND_MODULE="tcmloop"
-#export MULTIPATH_BACKEND_MODULE="scsidebug"
+
+#export MULTIPATH_BACKEND_MODULE="nvmefcloop"
+#export NVME_FCLOOP_DEVICE="/dev/pmem0"
 
 # Uncomment this if you want shorter test
 export FIO_VALIDATE_OPT="--time_based --runtime=30 --size=10G"
 
-export MULTIPATH_QUEUE_MODE="bio"
+# Available MULTIPATH_QUEUE_MODE options are:
+# mq rq nvme bio
+export MULTIPATH_QUEUE_MODE="mq"
 
 echo Y > /sys/module/scsi_mod/parameters/use_blk_mq
 echo Y > /sys/module/dm_mod/parameters/use_blk_mq
