@@ -21,6 +21,13 @@
 . ${LIB}/failpath_sdev_delete
 . ${LIB}/fio_validate
 
+if [ "$MULTIPATH_BACKEND_MODULE" != "tcmloop" \
+	-a "$MULTIPATH_BACKEND_MODULE" != "scsidebug" ]
+then
+	echo "Not using a SCSI backend"
+	exit 2
+fi
+
 create_mpath
 start_failpath_sdev_delete
 

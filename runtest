@@ -28,16 +28,22 @@ fi
 
 PASSED=
 FAILED=
+SKIPPED=
 for t in $TESTS; do
 	echo "** Running: $t"
 	$t
-	if [ $? -eq 0 ]; then
+
+	RESULT=$?
+	if [ $RESULT -eq 0 ]; then
 		PASSED="$PASSED $(basename $t)"
-	else
+	elif [ $RESULT -eq 1 ]; then
 		FAILED="$FAILED $(basename $t)"
+	else
+		SKIPPED="$SKIPPED $(basename $t)"
 	fi
 done
 
 echo "** summary **"
-echo "PASSED: $PASSED"
-echo "FAILED: $FAILED"
+echo "PASSED:  $PASSED"
+echo "FAILED:  $FAILED"
+echo "SKIPPED: $SKIPPED"
