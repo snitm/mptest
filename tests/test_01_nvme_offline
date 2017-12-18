@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (C) 2015 NEC Corporation.  All Rights Reserved.
+# Copyright (C) 2017 Red Hat, Inc.  All Rights Reserved.
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -16,17 +16,21 @@
 # Inc.,  51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #
 
-if [ -n "${SKIPTEST}" ]; then
-	exit 2
-fi
+export SKIPTEST=1
+[ -n "${SKIPTEST}" ] && echo "This test is currently unreliable due to backend recovery issues."
 
-if [ -z "${MULTIPATH_BACKEND_MODULE}" ]; then
-	echo "MULTIPATH_BACKEND_MODULE should be defined"
-	exit 1
-fi
-if [ ! -e "$LIB/backend_${MULTIPATH_BACKEND_MODULE}" ]; then
-	echo "backend_${MULTIPATH_BACKEND_MODULE} does not exist"
-	exit 1
-fi
+. ${LIB}/backend_generic
+. ${LIB}/mpath_generic
+. ${LIB}/failpath_nvme_offline
+. ${LIB}/fio_validate
 
-. $LIB/backend_${MULTIPATH_BACKEND_MODULE}
+create_mpath
+start_failpath_nvme_offline
+
+run_fio_validate
+ret=$?
+
+stop_failpath_nvme_offline
+delete_mpath
+
+exit $ret
