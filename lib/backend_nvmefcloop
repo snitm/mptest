@@ -21,6 +21,8 @@ if [ -z "$NVME_FCLOOP_DEVICE" ]; then
 	exit 1
 fi
 
+LOOPCTL=/sys/class/fcloop/ctl
+
 backend_all_paths ()
 {
     grep -l fc /sys/block/nvme*/device/transport | awk -F/ '{print $4}'
@@ -37,20 +39,20 @@ backend_create_device ()
     modprobe nvme-fcloop
 
     # create 4 target ports using fcloop
-    echo "wwnn=0x200140111111dbcc,wwpn=0x100140111111dbcc,roles=0x60" > /sys/devices/virtual/fcloop/ctl/add_target_port
-    echo "wwnn=0x200140111111dbcd,wwpn=0x100140111111dbcd,roles=0x60" > /sys/devices/virtual/fcloop/ctl/add_target_port
-    echo "wwnn=0x200140111111dbce,wwpn=0x100140111111dbce,roles=0x60" > /sys/devices/virtual/fcloop/ctl/add_target_port
-    echo "wwnn=0x200140111111dbcf,wwpn=0x100140111111dbcf,roles=0x60" > /sys/devices/virtual/fcloop/ctl/add_target_port
+    echo "wwnn=0x200140111111dbcc,wwpn=0x100140111111dbcc,roles=0x60" > $LOOPCTL/add_target_port
+    echo "wwnn=0x200140111111dbcd,wwpn=0x100140111111dbcd,roles=0x60" > $LOOPCTL/add_target_port
+    echo "wwnn=0x200140111111dbce,wwpn=0x100140111111dbce,roles=0x60" > $LOOPCTL/add_target_port
+    echo "wwnn=0x200140111111dbcf,wwpn=0x100140111111dbcf,roles=0x60" > $LOOPCTL/add_target_port
 
-    echo "wwnn=0x200140111111dac8,wwpn=0x100140111111dac8,roles=0x10" > /sys/devices/virtual/fcloop/ctl/add_local_port
-    echo "wwnn=0x200140111111dac9,wwpn=0x100140111111dac9,roles=0x10" > /sys/devices/virtual/fcloop/ctl/add_local_port
-    echo "wwnn=0x200140111111daca,wwpn=0x100140111111daca,roles=0x10" > /sys/devices/virtual/fcloop/ctl/add_local_port
-    echo "wwnn=0x200140111111dacb,wwpn=0x100140111111dacb,roles=0x10" > /sys/devices/virtual/fcloop/ctl/add_local_port
+    echo "wwnn=0x200140111111dac8,wwpn=0x100140111111dac8,roles=0x10" > $LOOPCTL/add_local_port
+    echo "wwnn=0x200140111111dac9,wwpn=0x100140111111dac9,roles=0x10" > $LOOPCTL/add_local_port
+    echo "wwnn=0x200140111111daca,wwpn=0x100140111111daca,roles=0x10" > $LOOPCTL/add_local_port
+    echo "wwnn=0x200140111111dacb,wwpn=0x100140111111dacb,roles=0x10" > $LOOPCTL/add_local_port
 
-    echo "wwnn=0x200140111111dbcc,wwpn=0x100140111111dbcc,lpwwnn=0x200140111111dac8,lpwwpn=0x100140111111dac8,roles=0x60" > /sys/devices/virtual/fcloop/ctl/add_remote_port
-    echo "wwnn=0x200140111111dbcd,wwpn=0x100140111111dbcd,lpwwnn=0x200140111111dac9,lpwwpn=0x100140111111dac9,roles=0x60" > /sys/devices/virtual/fcloop/ctl/add_remote_port
-    echo "wwnn=0x200140111111dbce,wwpn=0x100140111111dbce,lpwwnn=0x200140111111daca,lpwwpn=0x100140111111daca,roles=0x60" > /sys/devices/virtual/fcloop/ctl/add_remote_port
-    echo "wwnn=0x200140111111dbcf,wwpn=0x100140111111dbcf,lpwwnn=0x200140111111dacb,lpwwpn=0x100140111111dacb,roles=0x60" > /sys/devices/virtual/fcloop/ctl/add_remote_port
+    echo "wwnn=0x200140111111dbcc,wwpn=0x100140111111dbcc,lpwwnn=0x200140111111dac8,lpwwpn=0x100140111111dac8,roles=0x60" > $LOOPCTL/add_remote_port
+    echo "wwnn=0x200140111111dbcd,wwpn=0x100140111111dbcd,lpwwnn=0x200140111111dac9,lpwwpn=0x100140111111dac9,roles=0x60" > $LOOPCTL/add_remote_port
+    echo "wwnn=0x200140111111dbce,wwpn=0x100140111111dbce,lpwwnn=0x200140111111daca,lpwwpn=0x100140111111daca,roles=0x60" > $LOOPCTL/add_remote_port
+    echo "wwnn=0x200140111111dbcf,wwpn=0x100140111111dbcf,lpwwnn=0x200140111111dacb,lpwwpn=0x100140111111dacb,roles=0x60" > $LOOPCTL/add_remote_port
 
     # create nvme target ports
     nvmetcli <<EOF || exit 1
@@ -118,18 +120,18 @@ backend_delete_device ()
     nvmetcli clear
 
     # teardown fcloop devices
-    echo "wwnn=0x200140111111dbcc,wwpn=0x100140111111dbcc" > /sys/devices/virtual/fcloop/ctl/del_remote_port
-    echo "wwnn=0x200140111111dbcd,wwpn=0x100140111111dbcd" > /sys/devices/virtual/fcloop/ctl/del_remote_port
-    echo "wwnn=0x200140111111dbce,wwpn=0x100140111111dbce" > /sys/devices/virtual/fcloop/ctl/del_remote_port
-    echo "wwnn=0x200140111111dbcf,wwpn=0x100140111111dbcf" > /sys/devices/virtual/fcloop/ctl/del_remote_port
+    echo "wwnn=0x200140111111dbcc,wwpn=0x100140111111dbcc" > $LOOPCTL/del_remote_port
+    echo "wwnn=0x200140111111dbcd,wwpn=0x100140111111dbcd" > $LOOPCTL/del_remote_port
+    echo "wwnn=0x200140111111dbce,wwpn=0x100140111111dbce" > $LOOPCTL/del_remote_port
+    echo "wwnn=0x200140111111dbcf,wwpn=0x100140111111dbcf" > $LOOPCTL/del_remote_port
 
-    echo "wwnn=0x200140111111dac8,wwpn=0x100140111111dac8" > /sys/devices/virtual/fcloop/ctl/del_local_port
-    echo "wwnn=0x200140111111dac9,wwpn=0x100140111111dac9" > /sys/devices/virtual/fcloop/ctl/del_local_port
-    echo "wwnn=0x200140111111daca,wwpn=0x100140111111daca" > /sys/devices/virtual/fcloop/ctl/del_local_port
-    echo "wwnn=0x200140111111dacb,wwpn=0x100140111111dacb" > /sys/devices/virtual/fcloop/ctl/del_local_port
+    echo "wwnn=0x200140111111dac8,wwpn=0x100140111111dac8" > $LOOPCTL/del_local_port
+    echo "wwnn=0x200140111111dac9,wwpn=0x100140111111dac9" > $LOOPCTL/del_local_port
+    echo "wwnn=0x200140111111daca,wwpn=0x100140111111daca" > $LOOPCTL/del_local_port
+    echo "wwnn=0x200140111111dacb,wwpn=0x100140111111dacb" > $LOOPCTL/del_local_port
 
-    echo "wwnn=0x200140111111dbcc,wwpn=0x100140111111dbcc" > /sys/devices/virtual/fcloop/ctl/del_target_port
-    echo "wwnn=0x200140111111dbcd,wwpn=0x100140111111dbcd" > /sys/devices/virtual/fcloop/ctl/del_target_port
-    echo "wwnn=0x200140111111dbce,wwpn=0x100140111111dbce" > /sys/devices/virtual/fcloop/ctl/del_target_port
-    echo "wwnn=0x200140111111dbcf,wwpn=0x100140111111dbcf" > /sys/devices/virtual/fcloop/ctl/del_target_port
+    echo "wwnn=0x200140111111dbcc,wwpn=0x100140111111dbcc" > $LOOPCTL/del_target_port
+    echo "wwnn=0x200140111111dbcd,wwpn=0x100140111111dbcd" > $LOOPCTL/del_target_port
+    echo "wwnn=0x200140111111dbce,wwpn=0x100140111111dbce" > $LOOPCTL/del_target_port
+    echo "wwnn=0x200140111111dbcf,wwpn=0x100140111111dbcf" > $LOOPCTL/del_target_port
 }
