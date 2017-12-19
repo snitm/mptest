@@ -26,6 +26,18 @@ export FIO_VALIDATE_OPT="--runtime=90 --size=30G"
 . ${LIB}/failpath_nvme_offline
 . ${LIB}/fio_validate
 
+if [ "$MULTIPATH_BACKEND_MODULE" != "nvmefcloop" ]
+then
+	echo "Not using a NVMe backend"
+	exit 2
+fi
+
+if [ "$MULTIPATH_QUEUE_MODE" != "nvme" ]
+then
+	echo "Not using 'queue_mode nvme'"
+	exit 2
+fi
+
 create_mpath
 start_failpath_nvme_offline
 
