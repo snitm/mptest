@@ -11,8 +11,8 @@ export MULTIPATH_BACKEND_MODULE="tcmloop"
 #export MULTIPATH_BACKEND_MODULE="nvmefcloop"
 #export NVME_FCLOOP_DEVICE="/dev/pmem0"
 
-# Uncomment this if you want shorter test
-export FIO_VALIDATE_OPT="--time_based --runtime=30 --size=10G"
+# Uncomment this if you want longer tests (lib/fio_validate default is 30 secs)
+#export FIO_VALIDATE_OPT="--runtime=300 --size=100G"
 
 # Available MULTIPATH_QUEUE_MODE options are:
 # mq rq nvme bio

@@ -16,9 +16,9 @@
 # Inc.,  51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #
 
-stopfile=stop.failpath_nvme_offline
+. ${LIB}/backend_nvmefcloop
 
-LOOPCTL=/sys/class/fcloop/ctl
+stopfile=stop.failpath_nvme_offline
 
 start_failpath_nvme_offline () {
     [ -z "$MPNAME" ] && exit 1
@@ -29,31 +29,14 @@ start_failpath_nvme_offline () {
 
     rm -f $stopfile
     while [ ! -f $stopfile ]; do
-	    # FIXME: should split these out as functions that are shared with 'backend_nvmefcloop'
-
-	    # remove remote ports
-	    echo "wwnn=0x200140111111dbcc,wwpn=0x100140111111dbcc" > $LOOPCTL/del_remote_port
-	    echo "wwnn=0x200140111111dbcd,wwpn=0x100140111111dbcd" > $LOOPCTL/del_remote_port
-	    echo "wwnn=0x200140111111dbce,wwpn=0x100140111111dbce" > $LOOPCTL/del_remote_port
-	    echo "wwnn=0x200140111111dbcf,wwpn=0x100140111111dbcf" > $LOOPCTL/del_remote_port
+	    del_remote_ports
 
 	    sleep 1
 
-	    # add remote ports
-	    echo "wwnn=0x200140111111dbcc,wwpn=0x100140111111dbcc,lpwwnn=0x200140111111dac8,lpwwpn=0x100140111111dac8,roles=0x60" > $LOOPCTL/add_remote_port
-	    echo "wwnn=0x200140111111dbcd,wwpn=0x100140111111dbcd,lpwwnn=0x200140111111dac9,lpwwpn=0x100140111111dac9,roles=0x60" > $LOOPCTL/add_remote_port
-	    echo "wwnn=0x200140111111dbce,wwpn=0x100140111111dbce,lpwwnn=0x200140111111daca,lpwwpn=0x100140111111daca,roles=0x60" > $LOOPCTL/add_remote_port
-	    echo "wwnn=0x200140111111dbcf,wwpn=0x100140111111dbcf,lpwwnn=0x200140111111dacb,lpwwpn=0x100140111111dacb,roles=0x60" > $LOOPCTL/add_remote_port
+	    add_remote_ports
 
-	    sleep 1
-
-	    # reconnect nvme devices
-	    nvme connect -t fc -a "nn-0x200140111111dbcc:pn-0x100140111111dbcc" -w "nn-0x200140111111dac8:pn-0x100140111111dac8" -n mptestnqn
-	    nvme connect -t fc -a "nn-0x200140111111dbcd:pn-0x100140111111dbcd" -w "nn-0x200140111111dac9:pn-0x100140111111dac9" -n mptestnqn
-	    nvme connect -t fc -a "nn-0x200140111111dbce:pn-0x100140111111dbce" -w "nn-0x200140111111daca:pn-0x100140111111daca" -n mptestnqn
-	    nvme connect -t fc -a "nn-0x200140111111dbcf:pn-0x100140111111dbcf" -w "nn-0x200140111111dacb:pn-0x100140111111dacb" -n mptestnqn
-
-	    sleep 1
+	    # can easily take 10 secs for devices to come back...
+	    sleep 15
 
 	    for m in $majs; do
 		    dmsetup message $MPNAME 0 "reinstate_path $m"

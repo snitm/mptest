@@ -16,11 +16,6 @@
 # Inc.,  51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #
 
-if [ -z "$NVME_FCLOOP_DEVICE" ]; then
-	echo "NVME_FCLOOP_DEVICE should be defined"
-	exit 1
-fi
-
 LOOPCTL=/sys/class/fcloop/ctl
 
 backend_all_paths ()
@@ -34,8 +29,37 @@ backend_all_hosts ()
     true
 }
 
+add_remote_ports ()
+{
+    echo "wwnn=0x200140111111dbcc,wwpn=0x100140111111dbcc,lpwwnn=0x200140111111dac8,lpwwpn=0x100140111111dac8,roles=0x60" > $LOOPCTL/add_remote_port
+    echo "wwnn=0x200140111111dbcd,wwpn=0x100140111111dbcd,lpwwnn=0x200140111111dac9,lpwwpn=0x100140111111dac9,roles=0x60" > $LOOPCTL/add_remote_port
+    echo "wwnn=0x200140111111dbce,wwpn=0x100140111111dbce,lpwwnn=0x200140111111daca,lpwwpn=0x100140111111daca,roles=0x60" > $LOOPCTL/add_remote_port
+    echo "wwnn=0x200140111111dbcf,wwpn=0x100140111111dbcf,lpwwnn=0x200140111111dacb,lpwwpn=0x100140111111dacb,roles=0x60" > $LOOPCTL/add_remote_port
+}
+
+del_remote_ports ()
+{
+    echo "wwnn=0x200140111111dbcc,wwpn=0x100140111111dbcc" > $LOOPCTL/del_remote_port
+    echo "wwnn=0x200140111111dbcd,wwpn=0x100140111111dbcd" > $LOOPCTL/del_remote_port
+    echo "wwnn=0x200140111111dbce,wwpn=0x100140111111dbce" > $LOOPCTL/del_remote_port
+    echo "wwnn=0x200140111111dbcf,wwpn=0x100140111111dbcf" > $LOOPCTL/del_remote_port
+}
+
+nvme_connect_all ()
+{
+    nvme connect -t fc -a "nn-0x200140111111dbcc:pn-0x100140111111dbcc" -w "nn-0x200140111111dac8:pn-0x100140111111dac8" -n mptestnqn
+    nvme connect -t fc -a "nn-0x200140111111dbcd:pn-0x100140111111dbcd" -w "nn-0x200140111111dac9:pn-0x100140111111dac9" -n mptestnqn
+    nvme connect -t fc -a "nn-0x200140111111dbce:pn-0x100140111111dbce" -w "nn-0x200140111111daca:pn-0x100140111111daca" -n mptestnqn
+    nvme connect -t fc -a "nn-0x200140111111dbcf:pn-0x100140111111dbcf" -w "nn-0x200140111111dacb:pn-0x100140111111dacb" -n mptestnqn
+}
+
 backend_create_device ()
 {
+    if [ -z "$NVME_FCLOOP_DEVICE" ]; then
+	echo "NVME_FCLOOP_DEVICE should be defined"
+	exit 1
+    fi
+
     modprobe nvme-fcloop
 
     # create 4 target ports using fcloop
@@ -49,10 +73,7 @@ backend_create_device ()
     echo "wwnn=0x200140111111daca,wwpn=0x100140111111daca,roles=0x10" > $LOOPCTL/add_local_port
     echo "wwnn=0x200140111111dacb,wwpn=0x100140111111dacb,roles=0x10" > $LOOPCTL/add_local_port
 
-    echo "wwnn=0x200140111111dbcc,wwpn=0x100140111111dbcc,lpwwnn=0x200140111111dac8,lpwwpn=0x100140111111dac8,roles=0x60" > $LOOPCTL/add_remote_port
-    echo "wwnn=0x200140111111dbcd,wwpn=0x100140111111dbcd,lpwwnn=0x200140111111dac9,lpwwpn=0x100140111111dac9,roles=0x60" > $LOOPCTL/add_remote_port
-    echo "wwnn=0x200140111111dbce,wwpn=0x100140111111dbce,lpwwnn=0x200140111111daca,lpwwpn=0x100140111111daca,roles=0x60" > $LOOPCTL/add_remote_port
-    echo "wwnn=0x200140111111dbcf,wwpn=0x100140111111dbcf,lpwwnn=0x200140111111dacb,lpwwpn=0x100140111111dacb,roles=0x60" > $LOOPCTL/add_remote_port
+    add_remote_ports
 
     # create nvme target ports
     nvmetcli <<EOF || exit 1
@@ -105,10 +126,7 @@ exit
 EOF
 
     # finally connect the nvme initiator to the nvme targets
-    nvme connect -t fc -a "nn-0x200140111111dbcc:pn-0x100140111111dbcc" -w "nn-0x200140111111dac8:pn-0x100140111111dac8" -n mptestnqn
-    nvme connect -t fc -a "nn-0x200140111111dbcd:pn-0x100140111111dbcd" -w "nn-0x200140111111dac9:pn-0x100140111111dac9" -n mptestnqn
-    nvme connect -t fc -a "nn-0x200140111111dbce:pn-0x100140111111dbce" -w "nn-0x200140111111daca:pn-0x100140111111daca" -n mptestnqn
-    nvme connect -t fc -a "nn-0x200140111111dbcf:pn-0x100140111111dbcf" -w "nn-0x200140111111dacb:pn-0x100140111111dacb" -n mptestnqn
+    nvme_connect_all
 }
 
 backend_delete_device ()
@@ -120,10 +138,7 @@ backend_delete_device ()
     nvmetcli clear
 
     # teardown fcloop devices
-    echo "wwnn=0x200140111111dbcc,wwpn=0x100140111111dbcc" > $LOOPCTL/del_remote_port
-    echo "wwnn=0x200140111111dbcd,wwpn=0x100140111111dbcd" > $LOOPCTL/del_remote_port
-    echo "wwnn=0x200140111111dbce,wwpn=0x100140111111dbce" > $LOOPCTL/del_remote_port
-    echo "wwnn=0x200140111111dbcf,wwpn=0x100140111111dbcf" > $LOOPCTL/del_remote_port
+    del_remote_ports
 
     echo "wwnn=0x200140111111dac8,wwpn=0x100140111111dac8" > $LOOPCTL/del_local_port
     echo "wwnn=0x200140111111dac9,wwpn=0x100140111111dac9" > $LOOPCTL/del_local_port

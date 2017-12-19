@@ -17,7 +17,7 @@
 #
 
 if [ -z "${FIO_VALIDATE_OPT}" ]; then
-	FIO_VALIDATE_OPT="--time_based --runtime=300 --size=100G"
+	FIO_VALIDATE_OPT="--runtime=30 --size=10G"
 fi
 
 run_fio_validate ()
@@ -28,7 +28,7 @@ run_fio_validate ()
 	fi
 
 	fio --bs=512k --rw=randwrite --direct=1 --iodepth=2 --ioengine=libaio \
-	    --filename=/dev/mapper/$MPNAME ${FIO_VALIDATE_OPT} \
+	    --filename=/dev/mapper/$MPNAME --time_based ${FIO_VALIDATE_OPT} \
 	    --do_verify=1 --verify=meta --verify_dump=1 --verify_fatal=1 \
 	    --name=test1
 	if [ $? -ne 0 ]; then
