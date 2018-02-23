@@ -131,9 +131,7 @@ EOF
 
 backend_delete_device ()
 {
-    for d in $(backend_all_paths); do
-	nvme disconnect -d /dev/$d
-    done
+    nvme disconnect -n mptestnqn
 
     nvmetcli clear
 
