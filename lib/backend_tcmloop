@@ -16,16 +16,18 @@
 # Inc.,  51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #
 
-backend_all_paths ()
-{
-        grep -l LIO-ORG /sys/block/sd*/device/vendor | \
-		awk -F/ '{print $4}'
-}
-
 backend_all_hosts ()
 {
         grep -l tcm_loopback /sys/class/scsi_host/host*/proc_name | \
 		awk -F/ '{print $5}'
+}
+
+backend_all_paths ()
+{
+	for host in $(backend_all_hosts); do
+		target_num=$(basename /sys/class/scsi_host/${host}/device/target* | perl -pi -e 's/target//')
+		ls /sys/class/scsi_host/${host}/device/target${target_num}/${target_num}*/block/
+	done
 }
 
 backend_create_device ()
