@@ -32,9 +32,9 @@ then
 	exit 2
 fi
 
-if [ "$MULTIPATH_QUEUE_MODE" != "nvme" ]
+if [ "$MULTIPATH_QUEUE_MODE" != "bio" ]
 then
-	echo "Not using 'queue_mode nvme'"
+	echo "Not using 'queue_mode bio'"
 	exit 2
 fi
 
