@@ -15,7 +15,7 @@ export MULTIPATH_BACKEND_MODULE="tcmloop"
 #export FIO_VALIDATE_OPT="--runtime=300 --size=100G"
 
 # Available MULTIPATH_QUEUE_MODE options are:
-# mq rq nvme bio
+# mq rq bio
 export MULTIPATH_QUEUE_MODE="mq"
 
 echo Y > /sys/module/scsi_mod/parameters/use_blk_mq
